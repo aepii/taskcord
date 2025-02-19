@@ -8,6 +8,9 @@ interface Config_I {
   DISCORD_CLIENT_SECRET: string;
   DISCORD_REDIRECT_URL: string;
   DISCORD_GENERATED_URL: string;
+  JWT_SECRET: string;
+  JWT_EXPIRES_IN: string;
+  CLIENT_REDIRECT_URL: string;
 }
 
 config({ path: `.env.${process.env.NODE_ENV || "development"}.local` });
@@ -19,7 +22,10 @@ const envConfig: Config_I = {
   DISCORD_CLIENT_ID: process.env.DISCORD_CLIENT_ID || "",
   DISCORD_CLIENT_SECRET: process.env.DISCORD_CLIENT_SECRET || "",
   DISCORD_REDIRECT_URL: process.env.DISCORD_REDIRECT_URL || "",
-  DISCORD_GENERATED_URL: process.env.DISCORD_GENERATED_URL || ""
+  DISCORD_GENERATED_URL: process.env.DISCORD_GENERATED_URL || "",
+  JWT_SECRET: process.env.JWT_SECRET || "default_jwt_secret", 
+  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || "1d",
+  CLIENT_REDIRECT_URL: process.env.CLIENT_REDIRECT_URL || ""
 };
 
 export const {
@@ -29,5 +35,8 @@ export const {
   DISCORD_CLIENT_ID,
   DISCORD_CLIENT_SECRET,
   DISCORD_REDIRECT_URL,
-  DISCORD_GENERATED_URL
+  DISCORD_GENERATED_URL,
+  JWT_SECRET,
+  JWT_EXPIRES_IN,
+  CLIENT_REDIRECT_URL
 } = envConfig;

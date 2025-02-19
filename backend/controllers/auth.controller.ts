@@ -3,9 +3,14 @@ import {
   DISCORD_CLIENT_ID,
   DISCORD_CLIENT_SECRET,
   DISCORD_GENERATED_URL,
-  PORT,
+  JWT_SECRET,
+  JWT_EXPIRES_IN,
+  CLIENT_REDIRECT_URL,
+  NODE_ENV,
 } from "../config/env.ts";
 import UserModel from "../models/user.model.ts";
+import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
 export const discordLogin = async (req, res, next) => {
   try {
@@ -17,6 +22,8 @@ export const discordLogin = async (req, res, next) => {
 };
 
 export const discordCallback = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     const { code } = req.query;
     if (!code) {
@@ -58,25 +65,46 @@ export const discordCallback = async (req, res, next) => {
 
     const userData = await userResponse.json();
 
-    const user = {
-      discordId: userData.id,
-      discordUsername: userData.username,
-      avatar: userData.avatar,
-      email: userData.email,
-    };
+    const {
+      id: discordId,
+      username: discordUsername,
+      avatar,
+      email,
+    } = userData;
 
-    const existingUser = await UserModel.findOne({ discordId: user.discordId });
-    if (existingUser) {
-      existingUser.discordUsername = user.discordUsername;
-      await existingUser.save();
-      return res.status(200).json({ success: true, user: existingUser });
+    let user = await UserModel.findOne({ discordId }).session(session);
+    if (user) {
+      user.discordUsername = discordUsername;
+      user.avatar = avatar;
+      user.email = email;
+      await user.save({ session });
+    } else {
+      user = new UserModel({
+        discordId,
+        discordUsername,
+        avatar,
+        email,
+      });
+      await user.save({ session });
     }
 
-    const newUser = new UserModel(user);
-    await newUser.save();
+    const token = jwt.sign({ id: user._id }, JWT_SECRET, {
+      expiresIn: JWT_EXPIRES_IN,
+    } as jwt.SignOptions);
 
-    res.status(200).json({ success: true, oauthData, userData });
+    await session.commitTransaction();
+    session.endSession();
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: NODE_ENV,
+      maxAge: 1000 * 60 * 60 * 24 * 1,
+      sameSite: "none",
+    });
+    res.redirect(CLIENT_REDIRECT_URL);
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     next(error);
   }
 };

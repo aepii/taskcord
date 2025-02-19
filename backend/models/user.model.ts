@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 export interface User {
   discordId: string;
   discordUsername: string;
+  avatar: string;
   email?: string;
   createdAt?: Date;
   updatedAt?: Date;
@@ -21,6 +22,10 @@ const userSchema = new mongoose.Schema<User>(
       required: [true, "Discord username is required."],
       unique: true,
       index: true,
+    },
+    avatar: {
+      type: String,
+      required: false,
     },
     email: {
       type: String,
